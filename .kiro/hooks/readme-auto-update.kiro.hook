@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "name": "README Auto-Update",
+  "description": "Automatically updates the README.md file to reflect the current project status, dependencies, configuration, and launch instructions whenever key project files are modified.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "package.json",
+      "docker-compose.yml",
+      ".env.example",
+      "prisma/schema.prisma",
+      "next.config.ts",
+      "tsconfig.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Please analyze the current project structure and update the README.md file to accurately reflect:\n1. Project description and purpose\n2. Current dependencies and versions from package.json\n3. Environment setup instructions based on .env.example\n4. Database setup instructions from prisma/schema.prisma\n5. Docker setup instructions from docker-compose.yml\n6. Development and production launch commands\n7. Configuration details from next.config.ts and other config files\n8. Any prerequisites or system requirements\n9. Troubleshooting section for common issues\n\nMake sure the README is comprehensive, up-to-date, and provides all necessary information for someone to successfully set up and run the project."
+  }
+}
