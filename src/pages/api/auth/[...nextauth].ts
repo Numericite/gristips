@@ -12,8 +12,8 @@ import {
 import {
   validateProConnectClaims,
   createUserDataFromProConnect,
-  SESSION_CONFIG,
 } from "../../../lib/auth";
+import { SESSION_CONFIG } from "../../../lib/session-config";
 import { validateConfigurationAtStartup } from "../../../lib/config-validation";
 import { logError, logAuthEvent } from "../../../lib/error-handling";
 

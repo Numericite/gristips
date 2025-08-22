@@ -114,9 +114,8 @@ describe("AccessDenied Page", () => {
     expect(
       screen.getByText("Informations de votre compte")
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("Jean Dupont (test@example.com)")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Jean Dupont")).toBeInTheDocument();
+    expect(screen.getByText("test@example.com")).toBeInTheDocument();
     expect(screen.getByText("Non-agent public")).toBeInTheDocument();
   });
 

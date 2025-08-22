@@ -15,13 +15,24 @@ Gristips est une plateforme d'automatisation pour vos documents Grist, réservé
 - **Middleware de sécurité** : Protection automatique des routes selon le statut utilisateur
 - **Gestion d'erreurs** : Système d'erreurs structuré avec logging et pages dédiées
 - **Tests complets** : Suite de tests unitaires, composants et intégration
+- **Base de données étendue** : Schéma pour la gestion des automatisations Grist
+- **Chiffrement sécurisé** : Système de chiffrement AES-256-CBC pour les clés API Grist
+- **Client API Grist** : Service d'intégration avec l'API Grist pour la validation et récupération de données
+- **Gestion des clés API** : Endpoints sécurisés pour la configuration des clés API utilisateur
+
+### 🔄 En développement
+
+- **Endpoints de données Grist** : API pour récupérer documents, tables et schémas
+- **Interface de gestion des clés API** : Composant React pour la configuration sécurisée
+- **Formulaire de création d'automatisations** : Interface multi-étapes pour configurer les automatisations
+- **Gestion des automatisations** : CRUD complet pour les automatisations utilisateur
 
 ### 🔄 À venir
 
-- **Automatisations Grist** : Outils d'automatisation pour vos documents Grist
 - **Workflows personnalisés** : Configuration de workflows complexes avec conditions
 - **Intégrations API** : Connexions avec d'autres services gouvernementaux
 - **Tableau de bord avancé** : Statistiques et monitoring des automatisations
+- **Exécution d'automatisations** : Service d'exécution périodique des automatisations
 
 ## 🛠 Stack Technique
 
@@ -182,9 +193,16 @@ DATABASE_URL=postgresql://postgres:password@localhost:5433/gristips_dev
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=password
 POSTGRES_DB=gristips_dev
+
+# Encryption Configuration
+ENCRYPTION_KEY=your_32_character_encryption_key_here_minimum_length
 ```
 
-> ⚠️ **Important** : Remplacez `your_proconnect_client_id_here` et `your_proconnect_client_secret_here` par vos vraies valeurs ProConnect obtenues sur le portail partenaires. Le domaine `fca.integ01.dev-agentconnect.fr` est configuré pour l'environnement d'intégration avec l'issuer `/api/v2`.
+> ⚠️ **Important** :
+>
+> - Remplacez `your_proconnect_client_id_here` et `your_proconnect_client_secret_here` par vos vraies valeurs ProConnect obtenues sur le portail partenaires
+> - Le domaine `fca.integ01.dev-agentconnect.fr` est configuré pour l'environnement d'intégration avec l'issuer `/api/v2`
+> - **ENCRYPTION_KEY** doit faire au minimum 32 caractères pour le chiffrement AES-256-CBC des clés API Grist
 
 ### 4. Configuration ProConnect
 
@@ -215,10 +233,14 @@ Pour obtenir vos identifiants ProConnect :
 
    > **Note** : Le fichier `.env.example` utilise l'environnement d'intégration par défaut avec le domaine `fca.integ01.dev-agentconnect.fr` et l'issuer `/api/v2`, adapté pour le développement local.
 
-5. **Génération du secret NextAuth**
+5. **Génération des secrets**
+
    ```bash
-   # Générer un secret sécurisé
+   # Générer un secret NextAuth sécurisé
    openssl rand -base64 32
+
+   # Générer une clé de chiffrement pour les clés API Grist (32+ caractères)
+   openssl rand -base64 48
    ```
 
 ### 5. Démarrage de la base de données
@@ -284,7 +306,30 @@ La base de données utilise PostgreSQL 15 avec Prisma 6.14.0 comme ORM. Le sché
   - `name` (String) - Nom complet
   - `isPublicAgent` (Boolean) - Statut d'agent public (mappé vers `is_public_agent`)
   - `organization` (String, optionnel) - Organisation d'appartenance
+  - `gristApiKey` (String, optionnel) - Clé API Grist chiffrée AES-256-CBC (mappé vers `grist_api_key`)
+  - `gristApiKeyHash` (String, optionnel) - Hash SHA-256 de la clé API pour validation (mappé vers `grist_api_key_hash`)
   - `createdAt`, `updatedAt` - Timestamps (mappés vers `created_at`, `updated_at`)
+
+- **automations** : Automatisations Grist configurées par les utilisateurs
+
+  - `id` (String, CUID) - Identifiant unique
+  - `userId` (String) - Référence vers l'utilisateur (mappé vers `user_id`)
+  - `name` (String) - Nom de l'automation
+  - `description` (String, optionnel) - Description de l'automation
+  - `type` (String) - Type d'automation (par défaut "table_copy")
+  - `status` (String) - Statut (active, inactive, error)
+  - **Configuration source** :
+    - `sourceDocumentId`, `sourceDocumentName` - Document source Grist
+    - `sourceTableId`, `sourceTableName` - Table source
+  - **Configuration cible** :
+    - `targetDocumentId`, `targetDocumentName` - Document cible Grist
+    - `targetTableId`, `targetTableName` - Table cible
+  - **Configuration colonnes** :
+    - `selectedColumns` (JSON) - Colonnes sélectionnées pour la copie
+    - `columnMapping` (JSON, optionnel) - Mapping personnalisé des colonnes
+  - **Métadonnées d'exécution** :
+    - `lastExecuted`, `lastExecutionStatus`, `lastExecutionError`
+  - `createdAt`, `updatedAt` - Timestamps
 
 - **accounts** : Comptes liés aux providers d'authentification (ProConnect)
 
@@ -316,9 +361,9 @@ La base de données utilise PostgreSQL 15 avec Prisma 6.14.0 comme ORM. Le sché
 
 ### Relations
 
-- Un utilisateur peut avoir plusieurs comptes (accounts) et sessions
-- Les comptes et sessions sont liés à un utilisateur via `userId`
-- Suppression en cascade : si un utilisateur est supprimé, ses comptes et sessions le sont aussi
+- Un utilisateur peut avoir plusieurs comptes (accounts), sessions et automatisations
+- Les comptes, sessions et automatisations sont liés à un utilisateur via `userId`
+- Suppression en cascade : si un utilisateur est supprimé, ses comptes, sessions et automatisations le sont aussi
 - Contraintes d'unicité : `[provider, providerAccountId]` pour les comptes, `sessionToken` pour les sessions
 
 ## 🔧 Scripts disponibles
@@ -587,7 +632,20 @@ Error: Module not found: Can't resolve '@codegouvfr/react-dsfr'
 - Nettoyez le cache Next.js : `rm -rf .next`
 - Redémarrez le serveur de développement : `npm run dev`
 
-#### 6. Erreurs de tests
+#### 6. Erreur de clé de chiffrement manquante
+
+```
+Error: ENCRYPTION_KEY environment variable is required
+```
+
+**Solutions :**
+
+- Ajoutez `ENCRYPTION_KEY` dans votre fichier `.env.local`
+- La clé doit faire au minimum 32 caractères pour AES-256-CBC
+- Générez une clé sécurisée : `openssl rand -base64 48`
+- Vérifiez que la clé ne contient pas la valeur par défaut `your_32_character_encryption_key_here_minimum_length`
+
+#### 7. Erreurs de tests
 
 ```
 Error: Cannot assign to 'NODE_ENV' because it is a read-only property
@@ -601,7 +659,7 @@ Error: Cannot assign to 'NODE_ENV' because it is a read-only property
 - Pour les tests unitaires uniquement : `npm run test:unit`
 - Interface graphique des tests : `npm run test:ui`
 
-#### 7. Erreurs de configuration DSFR
+#### 8. Erreurs de configuration DSFR
 
 ```
 Error: Cannot resolve module '@codegouvfr/react-dsfr'
@@ -645,6 +703,7 @@ Cette page vérifie :
 - **Variables d'environnement ProConnect** : CLIENT_ID, CLIENT_SECRET, DOMAIN, ISSUER
 - **Configuration NextAuth.js** : NEXTAUTH_URL, NEXTAUTH_SECRET
 - **Connexion à la base de données** : DATABASE_URL et connectivité PostgreSQL
+- **Clé de chiffrement** : ENCRYPTION_KEY (longueur minimale 32 caractères)
 - **Endpoints ProConnect** : Accessibilité des services ProConnect (JWKS, etc.)
 - **Scopes et claims** : Configuration des scopes OpenID Connect requis
 - **Sécurité** : Validation des secrets et URLs selon l'environnement
@@ -701,12 +760,17 @@ src/
 │   │   ├── client.ts   # Client API avec gestion d'erreurs
 │   │   ├── error-handling.ts # Gestion d'erreurs serveur
 │   │   └── index.ts    # Exports API
+│   ├── grist/          # Intégration Grist
+│   │   ├── client.ts   # Client API Grist
+│   │   ├── index.ts    # Exports Grist
+│   │   └── types.ts    # Types Grist
 │   ├── validation/     # Validation de configuration
 │   │   ├── config.ts   # Validation ProConnect
 │   │   └── index.ts    # Exports validation
 │   ├── auth.ts         # Utilitaires d'authentification legacy
 │   ├── proconnect.ts   # Intégration ProConnect legacy
 │   ├── config-validation.ts # Validation de configuration legacy
+│   ├── encryption.ts   # Chiffrement AES-256-CBC pour clés API
 │   ├── error-handling.ts    # Gestion d'erreurs legacy
 │   ├── useSessionManagement.ts # Hook de gestion de session
 │   ├── SessionTimeoutWarning.tsx # Composant d'avertissement
@@ -724,6 +788,8 @@ src/
 │   │   ├── error.tsx   # Page d'erreur d'authentification
 │   │   └── access-denied.tsx # Page d'accès refusé
 │   └── api/            # API Routes
+│       ├── admin/      # Endpoints d'administration
+│       │   └── grist-api-key.ts # Gestion des clés API Grist
 │       ├── auth/       # Endpoints NextAuth.js
 │       │   ├── [...nextauth].ts # Configuration NextAuth
 │       │   ├── secure-signout.ts # Déconnexion sécurisée
@@ -764,11 +830,13 @@ src/
 
 ### Spécifications et implémentation
 
+#### Authentification ProConnect (✅ Terminé)
+
 Consultez les documents de spécification dans `.kiro/specs/proconnect-authentication/` :
 
 - `requirements.md` : Exigences fonctionnelles et cas d'usage
 - `design.md` : Architecture technique et conception
-- `tasks.md` : Plan d'implémentation détaillé (✅ **Terminé**)
+- `tasks.md` : Plan d'implémentation détaillé
 
 **État d'avancement** : L'authentification ProConnect est entièrement implémentée et testée, incluant :
 
@@ -780,6 +848,27 @@ Consultez les documents de spécification dans `.kiro/specs/proconnect-authentic
 - ✅ Tests unitaires et d'intégration complets
 - ✅ Validation de configuration automatique
 - ✅ Gestion d'erreurs structurée
+
+#### Gestion des automatisations Grist (🔄 En cours)
+
+Consultez les documents de spécification dans `.kiro/specs/grist-automation-management/` :
+
+- `requirements.md` : Exigences fonctionnelles pour la gestion des automatisations
+- `design.md` : Architecture technique et interfaces API
+- `tasks.md` : Plan d'implémentation détaillé
+
+**État d'avancement** : Développement en cours des fonctionnalités d'automatisation :
+
+- ✅ Extension du schéma de base de données (User.gristApiKey, Automation model)
+- ✅ Système de chiffrement sécurisé pour les clés API (AES-256-CBC avec PBKDF2)
+- ✅ Client API Grist pour l'intégration avec les documents
+- ✅ Endpoints de gestion des clés API utilisateur (GET/POST /api/admin/grist-api-key)
+- ✅ Tests complets pour la gestion des clés API
+- 🔄 Endpoints de récupération des données Grist (documents, tables, schémas)
+- 🔄 Interface de configuration des clés API
+- 🔄 Formulaire de création d'automatisations
+- 🔄 Interface de gestion des automatisationss Grist
+- 🔄 Tests d'intégration avec l'API Grist
 
 ## 🤝 Contribution
 
@@ -804,13 +893,15 @@ Ce projet est destiné à l'administration française. Pour contribuer :
 - ✅ **Interface DSFR** : Pages d'authentification et dashboard conformes au design system
 - ✅ **Middleware de sécurité** : Protection automatique des routes selon le statut utilisateur
 - ✅ **Gestion d'erreurs** : Système d'erreurs structuré avec logging et pages dédiées
+- ✅ **Base de données étendue** : Ajout des modèles pour la gestion des automatisations Grist
 
 **Prochaines étapes** :
 
-- 🔄 **Automatisations Grist** : Développement des outils d'automatisation
-- 🔄 **API Grist** : Intégration avec l'API Grist pour la gestion des documents
-- 🔄 **Workflows** : Système de workflows personnalisables
-- 🔄 **Monitoring** : Tableau de bord de monitoring des automatisations
+- 🔄 **Client API Grist** : Service d'intégration avec l'API Grist pour récupérer documents et tables
+- 🔄 **Gestion des clés API** : Interface sécurisée pour configurer les clés API Grist utilisateur
+- 🔄 **Interface d'automatisation** : Formulaires de création et gestion des automatisations
+- 🔄 **Validation Grist** : Vérification de la compatibilité des tables et colonnes
+- 🔄 **Service d'exécution** : Moteur d'exécution des automatisations configurées
 
 ### Compatibilité
 
@@ -833,11 +924,15 @@ Ce projet est destiné à l'administration française. Pour contribuer :
 - ✅ **Interface DSFR** : Pages d'authentification et dashboard conformes au design system
 - ✅ **Middleware de sécurité** : Protection automatique des routes selon le statut utilisateur
 - ✅ **Gestion d'erreurs** : Système d'erreurs structuré avec logging et pages dédiées
+- ✅ **Base de données étendue** : Schéma complet pour la gestion des automatisations Grist
 
 **Prochaines étapes** :
 
-- 🔄 **Automatisations Grist** : Développement des outils d'automatisation
-- 🔄 **API Grist** : Intégration avec l'API Grist pour la gestion des documents
+- 🔄 **Client API Grist** : Service d'intégration avec l'API Grist
+- 🔄 **Gestion des clés API** : Interface de configuration des clés API utilisateur
+- 🔄 **Automatisations** : Interface de création et gestion des automatisations
+- 🔄 **Validation** : Système de validation des configurations Grist
+- 🔄 **Exécution** : Service d'exécution des automatisationsstion des documents
 - 🔄 **Workflows** : Système de workflows personnalisables
 - 🔄 **Monitoring** : Tableau de bord de monitoring des automatisations
 

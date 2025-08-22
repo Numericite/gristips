@@ -11,16 +11,19 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String
-  isPublicAgent Boolean   @map("is_public_agent") @default(false)
-  organization  String?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String
+  isPublicAgent   Boolean   @map("is_public_agent") @default(false)
+  organization    String?
+  gristApiKey     String?   @map("grist_api_key") // Encrypted
+  gristApiKeyHash String?   @map("grist_api_key_hash") // For validation
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  accounts      Account[]
-  sessions      Session[]
+  accounts        Account[]
+  sessions        Session[]
+  automations     Automation[]
 
   @@map("users")
 }
@@ -67,4 +70,42 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model Automation {
+  id                    String   @id @default(cuid())
+  userId                String   @map("user_id")
+  name                  String
+  description           String?
+  type                  String   @default("table_copy") // Future: other automation types
+  status                String   @default("active") // active, inactive, error
+
+  // Source configuration
+  sourceDocumentId      String   @map("source_document_id")
+  sourceDocumentName    String   @map("source_document_name")
+  sourceTableId         String   @map("source_table_id")
+  sourceTableName       String   @map("source_table_name")
+
+  // Target configuration
+  targetDocumentId      String   @map("target_document_id")
+  targetDocumentName    String   @map("target_document_name")
+  targetTableId         String   @map("target_table_id")
+  targetTableName       String   @map("target_table_name")
+
+  // Column configuration
+  selectedColumns       Json     @map("selected_columns") // Array of column IDs
+  columnMapping         Json?    @map("column_mapping") // Future: custom column mapping
+
+  // Execution metadata
+  lastExecuted          DateTime? @map("last_executed")
+  lastExecutionStatus   String?   @map("last_execution_status")
+  lastExecutionError    String?   @map("last_execution_error")
+
+  // Timestamps
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("automations")
 }

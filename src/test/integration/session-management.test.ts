@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextApiRequest, NextApiResponse } from "next";
+import { SESSION_CONFIG } from "../../lib/session-config";
 
 // Mock session management utilities
 const mockValidateSession = vi.fn();
@@ -10,6 +11,9 @@ vi.mock("../../lib/auth", () => ({
   validateSession: mockValidateSession,
   invalidateSession: mockInvalidateSession,
   getSecureSignOutUrl: mockGetSecureSignOutUrl,
+}));
+
+vi.mock("../../lib/session-config", () => ({
   SESSION_CONFIG: {
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 1 day
@@ -307,24 +311,12 @@ describe("Session Management Integration Tests", () => {
 
   describe("Session Configuration", () => {
     it("should have correct session timeout values", () => {
-      const SESSION_CONFIG = {
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-        updateAge: 24 * 60 * 60, // 1 day
-        inactivityTimeout: 2 * 60 * 60, // 2 hours
-      };
-
       expect(SESSION_CONFIG.maxAge).toBe(2592000); // 30 days in seconds
       expect(SESSION_CONFIG.updateAge).toBe(86400); // 1 day in seconds
       expect(SESSION_CONFIG.inactivityTimeout).toBe(7200); // 2 hours in seconds
     });
 
     it("should validate session configuration is reasonable", () => {
-      const SESSION_CONFIG = {
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-        updateAge: 24 * 60 * 60, // 1 day
-        inactivityTimeout: 2 * 60 * 60, // 2 hours
-      };
-
       // Max age should be longer than update age
       expect(SESSION_CONFIG.maxAge).toBeGreaterThan(SESSION_CONFIG.updateAge);
 

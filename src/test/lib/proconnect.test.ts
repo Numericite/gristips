@@ -1,8 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  isPublicAgent,
-  transformProConnectProfile,
-} from "../../lib/proconnect";
 
 // Mock fetch globally
 global.fetch = vi.fn();
@@ -15,6 +11,12 @@ vi.mock("../../lib/config-validation", () => ({
   validateRuntimeConfiguration: vi.fn(),
   validateConfigurationAtStartup: vi.fn(),
 }));
+
+// Import after mocking
+import {
+  isPublicAgent,
+  transformProConnectProfile,
+} from "../../lib/proconnect";
 
 describe("ProConnect Service", () => {
   beforeEach(() => {

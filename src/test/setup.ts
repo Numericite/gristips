@@ -44,6 +44,36 @@ process.env.PROCONNECT_ISSUER =
   "https://auth.proconnect.gouv.fr/auth/realms/agent-connect-particulier";
 process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
 
+// Mock ProConnect validation functions
+vi.mock("../lib/proconnect", () => ({
+  validateProConnectConfig: vi.fn(),
+  getProConnectConfig: vi.fn(() => ({
+    clientId: "test-client-id",
+    clientSecret: "test-client-secret",
+    issuer:
+      "https://auth.proconnect.gouv.fr/auth/realms/agent-connect-particulier",
+  })),
+}));
+
+vi.mock("../lib/config-validation", () => ({
+  validateConfigurationAtStartup: vi.fn(),
+}));
+
+vi.mock("../lib/auth", () => ({
+  requireAuth: vi.fn(),
+  validateProConnectClaims: vi.fn(),
+  createUserDataFromProConnect: vi.fn(),
+}));
+
+vi.mock("../lib/session-config", () => ({
+  SESSION_CONFIG: {
+    maxAge: 3600,
+    updateAge: 300,
+  },
+}));
+process.env.ENCRYPTION_KEY =
+  "test-encryption-key-with-at-least-32-characters-for-security";
+
 // Mock DSFR modules that cause issues
 vi.mock("@codegouvfr/react-dsfr/tools/isBrowser", () => ({
   default: false,

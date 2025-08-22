@@ -203,10 +203,17 @@ export default function Admin({ user }: AdminPageProps) {
                       </div>
                     }
                     footer={
-                      <div className={classes.comingSoon}>
-                        <Badge severity="info" small>
-                          Bientôt disponible
-                        </Badge>
+                      <div style={{ marginTop: fr.spacing("3w") }}>
+                        <Button
+                          priority="primary"
+                          size="small"
+                          iconId="fr-icon-external-link-line"
+                          linkProps={{
+                            href: "/admin/automations",
+                          }}
+                        >
+                          Gérer les automatisations
+                        </Button>
                       </div>
                     }
                   />

@@ -12,6 +12,12 @@ export enum ErrorType {
   VALIDATION_ERROR = "validation_error",
   SERVER_ERROR = "server_error",
   METHOD_NOT_ALLOWED = "method_not_allowed",
+  EXTERNAL_SERVICE_ERROR = "external_service_error",
+  RATE_LIMIT_EXCEEDED = "rate_limit_exceeded",
+  NOT_FOUND = "not_found",
+  AUTHENTICATION_ERROR = "authentication_error",
+  GRIST_API_ERROR = "grist_api_error",
+  COLUMN_TYPE_MISMATCH = "column_type_mismatch",
 }
 
 // Interface pour les erreurs structurées
@@ -43,6 +49,16 @@ const ERROR_MESSAGES: Record<ErrorType, string> = {
   [ErrorType.SERVER_ERROR]:
     "Erreur serveur interne. Veuillez réessayer plus tard.",
   [ErrorType.METHOD_NOT_ALLOWED]: "Méthode HTTP non autorisée.",
+  [ErrorType.EXTERNAL_SERVICE_ERROR]:
+    "Erreur de service externe. Veuillez réessayer plus tard.",
+  [ErrorType.RATE_LIMIT_EXCEEDED]:
+    "Trop de requêtes. Veuillez patienter avant de réessayer.",
+  [ErrorType.NOT_FOUND]: "Ressource non trouvée.",
+  [ErrorType.AUTHENTICATION_ERROR]:
+    "Erreur d'authentification. Veuillez vérifier vos identifiants.",
+  [ErrorType.GRIST_API_ERROR]:
+    "Erreur de l'API Grist. Veuillez vérifier votre configuration.",
+  [ErrorType.COLUMN_TYPE_MISMATCH]: "Types de colonnes incompatibles détectés.",
 };
 
 // Codes de statut HTTP correspondants
@@ -56,6 +72,12 @@ const STATUS_CODES: Record<ErrorType, number> = {
   [ErrorType.VALIDATION_ERROR]: 400,
   [ErrorType.SERVER_ERROR]: 500,
   [ErrorType.METHOD_NOT_ALLOWED]: 405,
+  [ErrorType.EXTERNAL_SERVICE_ERROR]: 502,
+  [ErrorType.RATE_LIMIT_EXCEEDED]: 429,
+  [ErrorType.NOT_FOUND]: 404,
+  [ErrorType.AUTHENTICATION_ERROR]: 401,
+  [ErrorType.GRIST_API_ERROR]: 502,
+  [ErrorType.COLUMN_TYPE_MISMATCH]: 400,
 };
 
 // Classe d'erreur personnalisée
